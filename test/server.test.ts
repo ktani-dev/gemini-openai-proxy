@@ -25,7 +25,8 @@ afterEach(async () => {
 });
 
 async function startMock(handler: Handler): Promise<Mock> {
-  const app = Fastify();
+  // ストリームを流し続けるモックもあるので、閉じるときは接続を強制的に切る（Node.js 22 では切らないと close が終わらない）
+  const app = Fastify({ forceCloseConnections: true });
   const calls: Mock["calls"] = [];
   app.post("/v1beta/models/:action", async (req, reply) => {
     calls.push({ url: req.url, headers: req.headers, body: req.body });
