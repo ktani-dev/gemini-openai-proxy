@@ -1,5 +1,7 @@
 # gemini-openai-proxy
 
+[![test](https://github.com/ktani-dev/gemini-openai-proxy/actions/workflows/test.yml/badge.svg)](https://github.com/ktani-dev/gemini-openai-proxy/actions/workflows/test.yml)
+
 OpenAI Chat Completions形式のリクエストを、Gemini API（generateContent）に変換して中継するローカルプロキシです。
 GitHub CopilotのようにOpenAI互換のエンドポイントしか受け付けないツールから、Geminiのモデルをエージェントとして使えるようにします。
 
@@ -165,7 +167,7 @@ Geminiでそのまま使えないキーワードが先に並ぶので、変換�
 npm test
 ```
 
-単体テストと結合テストで62件あります。
+単体テストと結合テストで62件あります。GitHub Actionsで、pushのたびにNode.js 22と24で型チェック・ビルド・テストを回しています。
 
 - **単体テスト**：変換の処理をHTTPから切り離してテストしています（スキーマの各パターン、メッセージの順番、生成パラメータ、ツール呼び出しの往復、SSEの変換、UTF-8の分割など）
 - **結合テスト**：Gemini APIをまねたモックのサーバーを立てて、プロキシを通しで確かめています（再試行、タイムアウト、エラーの変換、同時実行数の上限、切断したときの中止、localhostの制限、調査モードなど）
