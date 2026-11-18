@@ -109,7 +109,8 @@ export async function callUpstream(deps: UpstreamDeps, call: UpstreamCall): Prom
         throw fromUpstreamError(response.status, text);
       }
       const wait = retryAfterMs(response.headers.get("retry-after"), maxDelayMs) ?? backoff(attempt, baseDelayMs, maxDelayMs);
-      deps.log?.(`上流が ${response.status} を返したため ${wait}ms 後に再試行します（${attempt + 1}/${maxRetries}）`);
+      // 何が原因で再試行したのか後から分かるように、上流のメッセージも短く残す
+      deps.log?.(`上流が ${response.status} を返したため ${wait}ms 後に再試行します（${attempt + 1}/${maxRetries}）: ${fromUpstreamError(response.status, text).message.slice(0, 200)}`);
       await sleep(wait, call.signal);
     }
   } catch (err) {

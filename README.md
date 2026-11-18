@@ -5,7 +5,7 @@ GitHub CopilotのようにOpenAI互換のエンドポイントしか受け付け
 
 - ツール呼び出し（function calling）の往復に対応。Copilotのエージェントモードで使えます
 - ストリーミング（SSE）に対応
-- Copilotが送ってくる100を超えるツール定義のJSON Schemaを、Geminiが受け付ける形に変換します
+- Copilotが送ってくる数十〜100を超えるツール定義のJSON Schemaを、Geminiが受け付ける形に変換します
 - 自分のPC（127.0.0.1）だけで動きます。外部の変換サービスは使いません
 
 ```
@@ -19,11 +19,13 @@ GitHub Copilotのカスタムエンドポイントは、OpenAI Chat Completions�
 
 既製の変換ツール（LiteLLMなど）もありますが、やりたいことは形式の変換とSSEの中継だけです。そのために依存を増やすより、中身を把握できる小さなプロキシを手元で動かす方が安全だと考えて、自作しました。実行時の依存はFastifyとZodの2つだけです。
 
+> Googleの公式APIを個人のキーで使うだけなら、今のVS CodeのCopilotには「Google」の接続先が標準で入っているので、そのままつなげます。このプロキシが役に立つのは、Gemini形式のAPIがGoogle以外のURL（社内のゲートウェイなど）で提供されていて、Copilotの標準の接続先からは指定できない場合です。
+
 ## 設計で考えたこと
 
 ### 1. ツール定義のスキーマは「境界でまとめて」変換する
 
-Copilotはリクエストのたびに、100個を超えるツール定義を送ってきます。その中に、Geminiが受け付けないJSON Schemaの書き方が混ざっていて、上流のAPIでエラーになりました。
+Copilotはリクエストのたびに、環境によっては100個を超えるツール定義を送ってきます。その中に、Geminiが受け付けないJSON Schemaの書き方が混ざっていて、上流のAPIでエラーになりました。
 
 最初、実装を担当したAIは「実APIに流す → エラーになったキーワードを1つ直す → また流す」を繰り返そうとしました。しかし、このやり方には問題があります。
 
@@ -113,11 +115,27 @@ Windowsでは`start.cmd`をダブルクリックしても起動できます。
 
 ### GitHub Copilotから使う
 
-VS CodeのCopilot Chatで、モデルの管理画面からOpenAI互換のエンドポイントを追加し、次のように設定します。
+VS Code 1.146で確かめた手順です。
 
-- URL：`http://127.0.0.1:8787/v1`
-- モデル：`config.json`の`models[].id`（例：`gemini-3.8-flash`）
-- APIキー：プロキシは使わないので、任意の文字列で構いません
+1. Copilot Chatのモデル選択から「Manage Models...」→「Add Models」→「Custom Endpoint」を選ぶ
+2. 名前（例：`gemini-proxy`）と、APIキーを入れる。プロキシはこのキーを使わないので、任意の文字列で構いません
+3. 開いた`chatLanguageModels.json`に、モデルを書き足す
+
+```json
+"models": [
+  {
+    "id": "gemini-3.5-flash",
+    "name": "Gemini 3.5 Flash (proxy)",
+    "url": "http://127.0.0.1:8787/v1/chat/completions",
+    "toolCalling": true,
+    "vision": true,
+    "maxInputTokens": 1000000,
+    "maxOutputTokens": 65536
+  }
+]
+```
+
+`id`は`config.json`の`models[].id`に合わせます。
 
 ### 設定（config.json）
 
@@ -157,6 +175,24 @@ npm test
 ```bash
 node scripts/live-check.mjs
 ```
+
+## Copilotで実際に動かした結果
+
+VS Code 1.146のCopilot（エージェントモード）から、このプロキシ経由でGemini 3.5 Flashを使い、ファイルを読むツールを呼んで答えるところまで動くことを確かめました。Gemini 3の`thoughtSignature`を送り返す処理も、ツールの往復で400エラーにならずに動いています。
+
+![Copilotのエージェントモードで、プロキシ経由のGemini 3.5 Flashがschema.tsを読み、変換ルールを表にまとめている画面](docs/copilot-agent.png)
+
+調査モードで集めたリクエスト1件分の分析結果です（この環境のCopilotは60個のツールを送ってきました）。
+
+| キーワード | 回数 | 使っているツール | 変換 |
+|---|---:|---|---|
+| `additionalProperties` | 14 | 2個 | ホワイトリストに無いので落とす |
+| `const` | 7 | 1個 | `enum`に変換 |
+| `$comment` | 5 | 5個 | ホワイトリストに無いので落とす |
+
+60個すべてを変換にかけ、Geminiに受け付けられることを確かめています。入っている拡張機能によってツールの数と中身は変わります（別の環境では128個でした）。どのツールが来ても同じ処理で変換できるのが、境界でまとめて変換する方式の利点です。
+
+Googleが混んでいるときは、503（混雑）や429（回数制限）が返ることがあります。プロキシは間を空けて再試行し、それでも通らなければOpenAI形式のエラーをCopilotに返します。
 
 ## 担当の分け方
 
