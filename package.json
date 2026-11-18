@@ -1,0 +1,29 @@
+{
+  "name": "gemini-openai-proxy",
+  "version": "1.0.0",
+  "description": "OpenAI Chat Completions 互換の API を Gemini API（generateContent）に変換するローカルプロキシ",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "analyze": "tsx src/capture/cli.ts"
+  },
+  "dependencies": {
+    "fastify": "^5.12.8",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.1"
+  }
+}

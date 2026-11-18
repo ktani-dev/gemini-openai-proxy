@@ -1,0 +1,23 @@
+{
+  "host": "127.0.0.1",
+  "port": 8787,
+  "upstream": {
+    "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+    "headersTimeoutMs": 300000,
+    "streamIdleTimeoutMs": 120000,
+    "maxConcurrency": 4,
+    "retry": {
+      "maxRetries": 3,
+      "baseDelayMs": 1000,
+      "maxDelayMs": 15000
+    }
+  },
+  "models": [
+    { "id": "gemini-3.8-flash", "upstreamModel": "gemini-3.8-flash" },
+    { "id": "gemini-3.5-flash", "upstreamModel": "gemini-3.5-flash" }
+  ],
+  "capture": {
+    "enabled": false,
+    "dir": "captures"
+  }
+}
